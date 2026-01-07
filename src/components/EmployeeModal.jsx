@@ -1,8 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Pencil, Save, Trash2 } from "lucide-react";
+import { X, Pencil, Save, Trash2, Shield } from "lucide-react";
 import { format } from "date-fns";
 import { useEmployees } from "../context/EmployeesContext.jsx";
+
+/* ---------------- CONFIG ---------------- */
+
+const ADMIN_PIN = "1234";
 
 /* ---------------- UTIL ---------------- */
 
@@ -22,6 +26,15 @@ export default function EmployeeModal({ employee, onClose }) {
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [form, setForm] = useState(employee);
+
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [pinInput, setPinInput] = useState("");
+  const [pinError, setPinError] = useState(false);
+
+  /* LOAD ADMIN STATE */
+  useEffect(() => {
+    setIsAdmin(localStorage.getItem("cyr1_isAdmin") === "true");
+  }, []);
 
   function updateField(key, value) {
     setForm(prev => ({ ...prev, [key]: value }));
@@ -46,10 +59,19 @@ export default function EmployeeModal({ employee, onClose }) {
     onClose();
   }
 
+  function submitPin() {
+    if (pinInput === ADMIN_PIN) {
+      localStorage.setItem("cyr1_isAdmin", "true");
+      setIsAdmin(true);
+      setPinError(false);
+    } else {
+      setPinError(true);
+    }
+  }
+
   return (
     <AnimatePresence>
       <motion.div
-        key="overlay"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -59,7 +81,6 @@ export default function EmployeeModal({ employee, onClose }) {
         onClick={onClose}
       >
         <motion.div
-          key="modal"
           initial={{ scale: 0.95, opacity: 0, y: 20 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.95, opacity: 0, y: 20 }}
@@ -75,7 +96,7 @@ export default function EmployeeModal({ employee, onClose }) {
           <button
             onClick={onClose}
             className="absolute top-4 right-4
-                       text-white/60 hover:text-white transition"
+                       text-white/60 hover:text-white"
           >
             <X size={20} />
           </button>
@@ -130,6 +151,7 @@ export default function EmployeeModal({ employee, onClose }) {
                 🎂 {format(new Date(employee.birthday), "MMMM dd")}
               </div>
 
+              {/* ACTIONS */}
               <div className="flex gap-3 pt-4">
                 <button
                   onClick={() => setEditing(true)}
@@ -141,17 +163,55 @@ export default function EmployeeModal({ employee, onClose }) {
                   Edit
                 </button>
 
-                <button
-                  onClick={() => setConfirmDelete(true)}
-                  className="px-4 py-2 rounded-xl
-                             bg-red-600/20 text-red-400
-                             hover:bg-red-600/30
-                             flex items-center gap-2"
-                >
-                  <Trash2 size={16} />
-                  Delete
-                </button>
+                {isAdmin ? (
+                  <button
+                    onClick={() => setConfirmDelete(true)}
+                    className="px-4 py-2 rounded-xl
+                               bg-red-600/20 text-red-400
+                               hover:bg-red-600/30
+                               flex items-center gap-2"
+                  >
+                    <Trash2 size={16} />
+                    Delete
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setPinInput("")}
+                    className="px-4 py-2 rounded-xl
+                               bg-white/5 text-white/60
+                               flex items-center gap-2"
+                  >
+                    <Shield size={16} />
+                    Admin Only
+                  </button>
+                )}
               </div>
+
+              {/* PIN ENTRY */}
+              {!isAdmin && (
+                <div className="w-full pt-4 space-y-2">
+                  <input
+                    type="password"
+                    value={pinInput}
+                    onChange={e => setPinInput(e.target.value)}
+                    placeholder="Enter Admin PIN"
+                    className="w-full px-3 py-2 rounded-xl
+                               bg-white/5 border border-white/10"
+                  />
+                  {pinError && (
+                    <p className="text-xs text-red-400">
+                      Invalid PIN
+                    </p>
+                  )}
+                  <button
+                    onClick={submitPin}
+                    className="w-full px-4 py-2 rounded-xl
+                               bg-emerald-600 hover:bg-emerald-500"
+                  >
+                    Unlock Admin
+                  </button>
+                </div>
+              )}
             </div>
           ) : (
             /* -------- EDIT MODE -------- */
