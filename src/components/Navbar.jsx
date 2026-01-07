@@ -18,7 +18,7 @@ export default function Navbar() {
       <div className="flex items-center gap-2">
         <img src={logo} alt="Logo" className="w-8 h-8" />
         <span className="font-semibold tracking-wide">
-          CYR1 Birthday Monitoring
+          CYR1 Birthday Monitoring System
         </span>
       </div>
 
