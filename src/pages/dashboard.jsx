@@ -42,6 +42,19 @@ function getRecent(employees) {
     .sort((a, b) => b._date - a._date)
     .slice(0, 3);
 }
+function daysAgoLabel(date) {
+  const today = new Date();
+  const d = new Date(date);
+
+  d.setFullYear(today.getFullYear());
+
+  const diffMs = today - d;
+  const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (days === 0) return "Today";
+  if (days === 1) return "Yesterday";
+  return `${days} days ago`;
+}
 
 /* ---------------- PAGE ---------------- */
 
@@ -160,8 +173,8 @@ export default function Dashboard() {
                 />
                 <p className="font-medium">{e.name}</p>
                 <p className="text-sm text-white/60">
-                  {format(new Date(e.birthday), "MMM dd")}
-                </p>
+  {format(new Date(e.birthday), "MMM dd")} · {daysAgoLabel(e.birthday)}
+</p>
               </div>
             ))}
           </div>
