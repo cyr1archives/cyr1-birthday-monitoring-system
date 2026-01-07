@@ -3,6 +3,7 @@ import { format } from "date-fns";
 import { useEmployees } from "../context/EmployeesContext.jsx";
 import MiniCalendar from "../components/MiniCalendar.jsx";
 import EmployeeModal from "../components/EmployeeModal.jsx";
+import WeatherNow from "../components/WeatherNow.jsx";
 
 /* ---------------- UTIL ---------------- */
 
@@ -42,18 +43,18 @@ function getRecent(employees) {
     .sort((a, b) => b._date - a._date)
     .slice(0, 3);
 }
+
 function daysAgoLabel(date) {
   const today = new Date();
   const d = new Date(date);
-
   d.setFullYear(today.getFullYear());
 
-  const diffMs = today - d;
-  const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  const diff =
+    Math.floor((today - d) / (1000 * 60 * 60 * 24));
 
-  if (days === 0) return "Today";
-  if (days === 1) return "Yesterday";
-  return `${days} days ago`;
+  if (diff === 0) return "Today";
+  if (diff === 1) return "Yesterday";
+  return `${diff} days ago`;
 }
 
 /* ---------------- PAGE ---------------- */
@@ -85,15 +86,20 @@ export default function Dashboard() {
           onClick={() =>
             todayBirthday && setSelectedEmployee(todayBirthday)
           }
-          className={`rounded-3xl p-6 bg-card border border-card
+          className={`relative rounded-3xl p-6
+                      bg-card border border-card
                       glow-card transition
                       ${todayBirthday ? "cursor-pointer" : "opacity-70"}`}
         >
+          {/* WEATHER (TOP RIGHT) */}
+          <div className="absolute top-4 right-4">
+            <WeatherNow />
+          </div>
+
           {todayBirthday ? (
             <div className="flex gap-6 items-center">
               <img
                 src={todayBirthday.image}
-                alt={todayBirthday.name}
                 className="w-32 h-32 rounded-2xl object-cover"
               />
 
@@ -138,7 +144,6 @@ export default function Dashboard() {
               >
                 <img
                   src={e.image}
-                  alt={e.name}
                   className="w-14 h-14 rounded-full object-cover mb-2"
                 />
                 <p className="font-medium">{e.name}</p>
@@ -168,20 +173,20 @@ export default function Dashboard() {
               >
                 <img
                   src={e.image}
-                  alt={e.name}
                   className="w-14 h-14 rounded-full object-cover mb-2"
                 />
                 <p className="font-medium">{e.name}</p>
                 <p className="text-sm text-white/60">
-  {format(new Date(e.birthday), "MMM dd")} · {daysAgoLabel(e.birthday)}
-</p>
+                  {format(new Date(e.birthday), "MMM dd")} ·{" "}
+                  {daysAgoLabel(e.birthday)}
+                </p>
               </div>
             ))}
           </div>
         </section>
       )}
 
-      {/* EMPLOYEE MODAL */}
+      {/* MODAL */}
       {selectedEmployee && (
         <EmployeeModal
           employee={selectedEmployee}
