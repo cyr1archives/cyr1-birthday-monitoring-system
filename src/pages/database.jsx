@@ -1,74 +1,159 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useEmployees } from "../context/EmployeesContext.jsx";
-import { useAuth } from "../context/AuthContext.jsx";
 import { calculateAge } from "../utils/date";
 import { importCSV, exportCSV } from "../utils/csv";
-import CreateEmployeeModal from "../components/CreateEmployeeModal.jsx";
+import { Trash2, ArrowUpDown } from "lucide-react";
+
+/* ---------------- UTIL ---------------- */
+
+function isUpcoming(birthday, days = 30) {
+  const today = new Date();
+  const d = new Date(birthday);
+  d.setFullYear(today.getFullYear());
+  if (d < today) d.setFullYear(today.getFullYear() + 1);
+  return (d - today) / (1000 * 60 * 60 * 24) <= days;
+}
+
+/* ---------------- PAGE ---------------- */
 
 export default function Database() {
   const { employees, setEmployees } = useEmployees();
-  const { role } = useAuth();
-  const isAdmin = role === "admin";
 
-  const [openCreate, setOpenCreate] = useState(false);
-  const [toDelete, setToDelete] = useState(null);
+  const [query, setQuery] = useState("");
+  const [sortKey, setSortKey] = useState("name");
+  const [asc, setAsc] = useState(true);
+
+  const isAdmin =
+    localStorage.getItem("cyr1_isAdmin") === "true";
+
+  /* FILTER + SORT */
+  const filtered = useMemo(() => {
+    return [...employees]
+      .filter(e =>
+        [e.name, e.position, e.department]
+          .join(" ")
+          .toLowerCase()
+          .includes(query.toLowerCase())
+      )
+      .sort((a, b) => {
+        const va =
+          sortKey === "age"
+            ? calculateAge(a.birthday)
+            : a[sortKey];
+        const vb =
+          sortKey === "age"
+            ? calculateAge(b.birthday)
+            : b[sortKey];
+        return asc ? va > vb : va < vb;
+      });
+  }, [employees, query, sortKey, asc]);
+
+  /* STATS */
+  const total = employees.length;
+  const upcoming = employees.filter(e =>
+    isUpcoming(e.birthday)
+  ).length;
+
+  function handleDelete(id) {
+    if (!confirm("Delete this employee?")) return;
+    setEmployees(prev => prev.filter(e => e.id !== id));
+  }
+
+  function toggleSort(key) {
+    if (key === sortKey) setAsc(!asc);
+    else {
+      setSortKey(key);
+      setAsc(true);
+    }
+  }
 
   async function handleUpload(e) {
     const file = e.target.files[0];
     if (!file) return;
-
     const data = await importCSV(file);
     setEmployees(data);
   }
 
-  function confirmDelete() {
-    setEmployees(employees.filter(e => e.id !== toDelete.id));
-    setToDelete(null);
-  }
-
   return (
     <div className="space-y-6">
-      {/* ACTIONS */}
-      {isAdmin && (
-        <div className="flex flex-wrap gap-3">
-          <button
-            onClick={() => setOpenCreate(true)}
-            className="px-4 py-2 rounded-xl bg-[var(--accent)] text-green-400 glow-btn"
-          >
-            + Add Employee
-          </button>
+      {/* HEADER */}
+      <div className="flex flex-wrap gap-4 items-center justify-between">
+        <div className="space-y-1">
+          <h2 className="text-xl font-semibold">
+            Employee Database
+          </h2>
+          <p className="text-sm text-white/50">
+            {total} total · {upcoming} upcoming (30 days)
+          </p>
+        </div>
 
-          <label className="px-4 py-2 rounded-xl cursor-pointer bg-[var(--btn-bg)] glow-btn">
+        {/* ACTIONS */}
+        <div className="flex gap-2">
+          <label className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 cursor-pointer">
             Upload CSV
-            <input type="file" hidden accept=".csv" onChange={handleUpload} />
+            <input
+              type="file"
+              hidden
+              accept=".csv"
+              onChange={handleUpload}
+            />
           </label>
 
           <button
             onClick={() => exportCSV(employees)}
-            className="px-4 py-2 rounded-xl bg-[var(--btn-bg)] glow-btn"
+            className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10"
           >
             Export CSV
           </button>
         </div>
-      )}
+      </div>
+
+      {/* SEARCH */}
+      <input
+        value={query}
+        onChange={e => setQuery(e.target.value)}
+        placeholder="Search name, position, department..."
+        className="w-full px-4 py-2 rounded-xl
+                   bg-white/5 border border-white/10"
+      />
 
       {/* TABLE */}
-      <div className="rounded-2xl overflow-hidden bg-card border border-card glow-card">
+      <div className="overflow-x-auto rounded-2xl
+                      bg-[#0f131a]
+                      border border-white/10">
         <table className="w-full text-sm">
           <thead className="bg-black/20">
             <tr>
-              <th className="p-3 text-left">Name</th>
-              <th>Position</th>
-              <th>Department</th>
-              <th>Birthday</th>
-              <th>Age</th>
-              {isAdmin && <th className="text-right pr-4">Actions</th>}
+              {[
+                ["name", "Name"],
+                ["position", "Position"],
+                ["department", "Department"],
+                ["birthday", "Birthday"],
+                ["age", "Age"]
+              ].map(([key, label]) => (
+                <th
+                  key={key}
+                  onClick={() => toggleSort(key)}
+                  className="p-3 text-left cursor-pointer"
+                >
+                  <div className="flex items-center gap-1">
+                    {label}
+                    <ArrowUpDown size={14} />
+                  </div>
+                </th>
+              ))}
+
+              {isAdmin && <th className="p-3"></th>}
             </tr>
           </thead>
 
           <tbody>
-            {employees.map(e => (
-              <tr key={e.id} className="border-t border-white/5">
+            {filtered.map(e => (
+              <tr
+                key={e.id}
+                className="border-t border-white/5
+                           hover:bg-white/5 transition"
+              >
                 <td className="p-3">{e.name}</td>
                 <td>{e.position}</td>
                 <td>{e.department}</td>
@@ -76,73 +161,31 @@ export default function Database() {
                 <td>{calculateAge(e.birthday)}</td>
 
                 {isAdmin && (
-                  <td className="text-right pr-4">
+                  <td className="p-3">
                     <button
-                      onClick={() => setToDelete(e)}
+                      onClick={() => handleDelete(e.id)}
                       className="text-red-400 hover:text-red-300"
                     >
-                      Delete
+                      <Trash2 size={16} />
                     </button>
                   </td>
                 )}
               </tr>
             ))}
 
-            {employees.length === 0 && (
+            {filtered.length === 0 && (
               <tr>
-                <td colSpan="6" className="p-6 text-center text-white/50">
-                  No employees found
+                <td
+                  colSpan={6}
+                  className="p-6 text-center text-white/50"
+                >
+                  No results found
                 </td>
               </tr>
             )}
           </tbody>
         </table>
       </div>
-
-      {/* CREATE */}
-      {isAdmin && (
-        <CreateEmployeeModal
-          open={openCreate}
-          onClose={() => setOpenCreate(false)}
-        />
-      )}
-
-      {/* DELETE CONFIRM */}
-      {toDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={() => setToDelete(null)}
-          />
-
-          <div className="relative w-full max-w-sm mx-4 rounded-2xl bg-card border border-card p-6 glow-card">
-            <h3 className="text-lg font-semibold mb-2">
-              Delete Employee
-            </h3>
-
-            <p className="text-white/60 text-sm mb-6">
-              Delete <span className="text-white">{toDelete.name}</span>? This
-              cannot be undone.
-            </p>
-
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setToDelete(null)}
-                className="px-4 py-2 rounded-xl glow-btn"
-              >
-                Cancel
-              </button>
-
-              <button
-                onClick={confirmDelete}
-                className="px-4 py-2 rounded-xl bg-red-500/20 text-red-400 glow-btn"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
