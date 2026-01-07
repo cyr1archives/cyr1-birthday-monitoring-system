@@ -23,6 +23,9 @@ export default function Database() {
   const [sortKey, setSortKey] = useState("name");
   const [asc, setAsc] = useState(true);
 
+  const [editing, setEditing] = useState(null);
+  // { id, field, value }
+
   const isAdmin =
     localStorage.getItem("cyr1_isAdmin") === "true";
 
@@ -54,17 +57,44 @@ export default function Database() {
     isUpcoming(e.birthday)
   ).length;
 
-  function handleDelete(id) {
-    if (!confirm("Delete this employee?")) return;
-    setEmployees(prev => prev.filter(e => e.id !== id));
-  }
-
   function toggleSort(key) {
     if (key === sortKey) setAsc(!asc);
     else {
       setSortKey(key);
       setAsc(true);
     }
+  }
+
+  function handleDelete(id) {
+    if (!confirm("Delete this employee?")) return;
+    setEmployees(prev => prev.filter(e => e.id !== id));
+  }
+
+  function startEdit(e, field) {
+    if (!isAdmin) return;
+    setEditing({
+      id: e.id,
+      field,
+      value: e[field]
+    });
+  }
+
+  function saveEdit() {
+    if (!editing) return;
+
+    setEmployees(prev =>
+      prev.map(e =>
+        e.id === editing.id
+          ? { ...e, [editing.field]: editing.value }
+          : e
+      )
+    );
+
+    setEditing(null);
+  }
+
+  function cancelEdit() {
+    setEditing(null);
   }
 
   async function handleUpload(e) {
@@ -74,11 +104,50 @@ export default function Database() {
     setEmployees(data);
   }
 
+  function renderCell(e, field, type = "text") {
+    if (
+      editing &&
+      editing.id === e.id &&
+      editing.field === field
+    ) {
+      return (
+        <input
+          autoFocus
+          type={type}
+          value={editing.value}
+          onChange={ev =>
+            setEditing({ ...editing, value: ev.target.value })
+          }
+          onBlur={saveEdit}
+          onKeyDown={ev => {
+            if (ev.key === "Enter") saveEdit();
+            if (ev.key === "Escape") cancelEdit();
+          }}
+          className="w-full px-2 py-1 rounded-md
+                     bg-white/10 border border-white/20"
+        />
+      );
+    }
+
+    return (
+      <span
+        onClick={() => startEdit(e, field)}
+        className={
+          isAdmin
+            ? "cursor-pointer hover:underline"
+            : ""
+        }
+      >
+        {e[field]}
+      </span>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* HEADER */}
       <div className="flex flex-wrap gap-4 items-center justify-between">
-        <div className="space-y-1">
+        <div>
           <h2 className="text-xl font-semibold">
             Employee Database
           </h2>
@@ -87,7 +156,6 @@ export default function Database() {
           </p>
         </div>
 
-        {/* ACTIONS */}
         <div className="flex gap-2">
           <label className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 cursor-pointer">
             Upload CSV
@@ -142,7 +210,6 @@ export default function Database() {
                   </div>
                 </th>
               ))}
-
               {isAdmin && <th className="p-3"></th>}
             </tr>
           </thead>
@@ -154,10 +221,14 @@ export default function Database() {
                 className="border-t border-white/5
                            hover:bg-white/5 transition"
               >
-                <td className="p-3">{e.name}</td>
-                <td>{e.position}</td>
-                <td>{e.department}</td>
-                <td>{e.birthday}</td>
+                <td className="p-3">
+                  {renderCell(e, "name")}
+                </td>
+                <td>{renderCell(e, "position")}</td>
+                <td>{renderCell(e, "department")}</td>
+                <td>
+                  {renderCell(e, "birthday", "date")}
+                </td>
                 <td>{calculateAge(e.birthday)}</td>
 
                 {isAdmin && (

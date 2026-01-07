@@ -1,9 +1,24 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { format } from "date-fns";
 import { useEmployees } from "../context/EmployeesContext.jsx";
 import MiniCalendar from "../components/MiniCalendar.jsx";
 import EmployeeModal from "../components/EmployeeModal.jsx";
 import WeatherNow from "../components/WeatherNow.jsx";
+
+/* ---------------- QUOTES ---------------- */
+
+const QUOTES = [
+  "Design is intelligence made visible.",
+  "There are 10 kinds of people in the world: those who understand binary and those who don’t.",
+  "It works on my machine.",
+  "Good design is good business.",
+  "First, solve the problem. Then, write the code.",
+  "Creativity is intelligence having fun.",
+  "Simplicity is the ultimate sophistication.",
+  "Coffee first. Then code.",
+  "You don’t need a better tool, you need a clearer idea.",
+  "Make it work. Make it right. Make it fast."
+];
 
 /* ---------------- UTIL ---------------- */
 
@@ -18,7 +33,6 @@ function isBirthdayToday(dateStr) {
 
 function getUpcoming(employees) {
   const today = new Date();
-
   return [...employees]
     .map(e => {
       const d = new Date(e.birthday);
@@ -32,7 +46,6 @@ function getUpcoming(employees) {
 
 function getRecent(employees) {
   const today = new Date();
-
   return [...employees]
     .map(e => {
       const d = new Date(e.birthday);
@@ -48,10 +61,7 @@ function daysAgoLabel(date) {
   const today = new Date();
   const d = new Date(date);
   d.setFullYear(today.getFullYear());
-
-  const diff =
-    Math.floor((today - d) / (1000 * 60 * 60 * 24));
-
+  const diff = Math.floor((today - d) / (1000 * 60 * 60 * 24));
   if (diff === 0) return "Today";
   if (diff === 1) return "Yesterday";
   return `${diff} days ago`;
@@ -62,6 +72,19 @@ function daysAgoLabel(date) {
 export default function Dashboard() {
   const { employees } = useEmployees();
   const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [now, setNow] = useState(new Date());
+  const [quote, setQuote] = useState("");
+
+  /* CLOCK */
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  /* RANDOM QUOTE (ONCE) */
+  useEffect(() => {
+    setQuote(QUOTES[Math.floor(Math.random() * QUOTES.length)]);
+  }, []);
 
   const todayBirthday = employees.find(e =>
     isBirthdayToday(e.birthday)
@@ -89,13 +112,20 @@ export default function Dashboard() {
           className={`relative rounded-3xl p-6
                       bg-card border border-card
                       glow-card transition
-                      ${todayBirthday ? "cursor-pointer" : "opacity-70"}`}
+                      ${todayBirthday ? "cursor-pointer" : "opacity-90"}`}
         >
-          {/* WEATHER (TOP RIGHT) */}
-          <div className="absolute top-4 right-4">
+          {/* WEATHER + TIME */}
+          <div className="absolute top-4 right-4 text-right space-y-1">
             <WeatherNow />
+            <div className="text-xs text-white/60">
+              {format(now, "EEEE · MMM dd")}
+            </div>
+            <div className="text-sm font-semibold">
+              {format(now, "hh:mm:ss a")}
+            </div>
           </div>
 
+          {/* CONTENT */}
           {todayBirthday ? (
             <div className="flex gap-6 items-center">
               <img
@@ -117,8 +147,11 @@ export default function Dashboard() {
               </div>
             </div>
           ) : (
-            <div className="text-white/50">
-              No birthdays today
+            /* NO BIRTHDAY → QUOTE */
+            <div className="h-full flex items-center">
+              <blockquote className="max-w-md italic text-white/70">
+                “{quote}”
+              </blockquote>
             </div>
           )}
         </div>
