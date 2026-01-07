@@ -48,16 +48,19 @@ export default function Dashboard() {
   );
 
   const recent = useMemo(() => {
-    const today = new Date();
-    return [...employees]
-      .filter(e => {
-        const d = new Date(e.birthday);
-        d.setFullYear(today.getFullYear());
-        return d < today;
-      })
-      .sort((a, b) => new Date(b.birthday) - new Date(a.birthday))
-      .slice(0, 3);
-  }, [employees]);
+  const today = new Date();
+
+  return [...employees]
+    .map(e => {
+      const d = new Date(e.birthday);
+      d.setFullYear(today.getFullYear());
+
+      return { ...e, _date: d };
+    })
+    .filter(e => e._date < today)
+    .sort((a, b) => b._date - a._date)
+    .slice(0, 3);
+}, [employees]);
 
   return (
     <div className="space-y-8">
