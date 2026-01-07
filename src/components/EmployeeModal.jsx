@@ -3,7 +3,7 @@ import { useEmployees } from "../context/EmployeesContext.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 
 export default function EmployeeModal({ employee, onClose }) {
-  const { employees, setEmployees } = useEmployees();
+  const { updateEmployee } = useEmployees();
   const { role } = useAuth();
   const isAdmin = role === "admin";
 
@@ -27,11 +27,8 @@ export default function EmployeeModal({ employee, onClose }) {
   }
 
   function handleSave() {
-    setEmployees(
-      employees.map(e => (e.id === employee.id ? { ...e, ...form } : e))
-    );
+    updateEmployee(form);
     setEditing(false);
-    onClose();
   }
 
   const birthday = new Date(employee.birthday);
