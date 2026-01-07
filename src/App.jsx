@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Routes, Route } from "react-router-dom";
 import Layout from "./layout.jsx";
 import Dashboard from "./pages/dashboard.jsx";
-import Calendar from "./pages/Calendar.jsx";
+import Calendar from "./pages/calendar.jsx";
 import Database from "./pages/database.jsx";
 import LoadingScreen from "./components/LoadingScreen.jsx";
 import { useAuth } from "./context/AuthContext.jsx";
