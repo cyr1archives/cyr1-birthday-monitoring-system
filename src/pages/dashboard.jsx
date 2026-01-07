@@ -1,8 +1,8 @@
 import { useState, useMemo } from "react";
+import { format } from "date-fns";
 import { useEmployees } from "../context/EmployeesContext.jsx";
 import MiniCalendar from "../components/MiniCalendar.jsx";
 import EmployeeModal from "../components/EmployeeModal.jsx";
-import { format } from "date-fns";
 
 /* ---------------- UTIL ---------------- */
 
@@ -15,21 +15,32 @@ function isBirthdayToday(dateStr) {
   );
 }
 
-function sortByUpcoming(employees) {
+function getUpcoming(employees) {
   const today = new Date();
 
-  return [...employees].sort((a, b) => {
-    const da = new Date(a.birthday);
-    const db = new Date(b.birthday);
+  return [...employees]
+    .map(e => {
+      const d = new Date(e.birthday);
+      d.setFullYear(today.getFullYear());
+      if (d < today) d.setFullYear(today.getFullYear() + 1);
+      return { ...e, _date: d };
+    })
+    .sort((a, b) => a._date - b._date)
+    .slice(0, 3);
+}
 
-    da.setFullYear(today.getFullYear());
-    db.setFullYear(today.getFullYear());
+function getRecent(employees) {
+  const today = new Date();
 
-    if (da < today) da.setFullYear(today.getFullYear() + 1);
-    if (db < today) db.setFullYear(today.getFullYear() + 1);
-
-    return da - db;
-  });
+  return [...employees]
+    .map(e => {
+      const d = new Date(e.birthday);
+      d.setFullYear(today.getFullYear());
+      return { ...e, _date: d };
+    })
+    .filter(e => e._date < today)
+    .sort((a, b) => b._date - a._date)
+    .slice(0, 3);
 }
 
 /* ---------------- PAGE ---------------- */
@@ -43,24 +54,14 @@ export default function Dashboard() {
   );
 
   const upcoming = useMemo(
-    () => sortByUpcoming(employees).slice(0, 3),
+    () => getUpcoming(employees),
     [employees]
   );
 
-  const recent = useMemo(() => {
-  const today = new Date();
-
-  return [...employees]
-    .map(e => {
-      const d = new Date(e.birthday);
-      d.setFullYear(today.getFullYear());
-
-      return { ...e, _date: d };
-    })
-    .filter(e => e._date < today)
-    .sort((a, b) => b._date - a._date)
-    .slice(0, 3);
-}, [employees]);
+  const recent = useMemo(
+    () => getRecent(employees),
+    [employees]
+  );
 
   return (
     <div className="space-y-8">
@@ -72,13 +73,14 @@ export default function Dashboard() {
             todayBirthday && setSelectedEmployee(todayBirthday)
           }
           className={`rounded-3xl p-6 bg-card border border-card
-                      glow-card transition cursor-pointer
-                      ${!todayBirthday && "opacity-70 cursor-default"}`}
+                      glow-card transition
+                      ${todayBirthday ? "cursor-pointer" : "opacity-70"}`}
         >
           {todayBirthday ? (
             <div className="flex gap-6 items-center">
               <img
                 src={todayBirthday.image}
+                alt={todayBirthday.name}
                 className="w-32 h-32 rounded-2xl object-cover"
               />
 
@@ -107,60 +109,66 @@ export default function Dashboard() {
       </div>
 
       {/* UPCOMING */}
-      <section>
-        <h3 className="mb-4 text-lg font-medium">
-          Upcoming Birthdays
-        </h3>
+      {upcoming.length > 0 && (
+        <section>
+          <h3 className="mb-4 text-lg font-medium">
+            Upcoming Birthdays
+          </h3>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {upcoming.map(e => (
-            <div
-              key={e.id}
-              onClick={() => setSelectedEmployee(e)}
-              className="rounded-2xl p-4 bg-card border border-card
-                         glow-card cursor-pointer"
-            >
-              <img
-                src={e.image}
-                className="w-14 h-14 rounded-full object-cover mb-2"
-              />
-              <p className="font-medium">{e.name}</p>
-              <p className="text-sm text-white/60">
-                {format(new Date(e.birthday), "MMM dd")}
-              </p>
-            </div>
-          ))}
-        </div>
-      </section>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {upcoming.map(e => (
+              <div
+                key={e.id}
+                onClick={() => setSelectedEmployee(e)}
+                className="rounded-2xl p-4 bg-card border border-card
+                           glow-card cursor-pointer"
+              >
+                <img
+                  src={e.image}
+                  alt={e.name}
+                  className="w-14 h-14 rounded-full object-cover mb-2"
+                />
+                <p className="font-medium">{e.name}</p>
+                <p className="text-sm text-white/60">
+                  {format(new Date(e.birthday), "MMM dd")}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* RECENT */}
-      <section>
-        <h3 className="mb-4 text-lg font-medium">
-          Recent Birthdays
-        </h3>
+      {recent.length > 0 && (
+        <section>
+          <h3 className="mb-4 text-lg font-medium">
+            Recent Birthdays
+          </h3>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {recent.map(e => (
-            <div
-              key={e.id}
-              onClick={() => setSelectedEmployee(e)}
-              className="rounded-2xl p-4 bg-card border border-card
-                         glow-card cursor-pointer opacity-80"
-            >
-              <img
-                src={e.image}
-                className="w-14 h-14 rounded-full object-cover mb-2"
-              />
-              <p className="font-medium">{e.name}</p>
-              <p className="text-sm text-white/60">
-                {format(new Date(e.birthday), "MMM dd")}
-              </p>
-            </div>
-          ))}
-        </div>
-      </section>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {recent.map(e => (
+              <div
+                key={e.id}
+                onClick={() => setSelectedEmployee(e)}
+                className="rounded-2xl p-4 bg-card border border-card
+                           glow-card cursor-pointer opacity-80"
+              >
+                <img
+                  src={e.image}
+                  alt={e.name}
+                  className="w-14 h-14 rounded-full object-cover mb-2"
+                />
+                <p className="font-medium">{e.name}</p>
+                <p className="text-sm text-white/60">
+                  {format(new Date(e.birthday), "MMM dd")}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
-      {/* EMPLOYEE MODAL (CRITICAL) */}
+      {/* EMPLOYEE MODAL */}
       {selectedEmployee && (
         <EmployeeModal
           employee={selectedEmployee}
