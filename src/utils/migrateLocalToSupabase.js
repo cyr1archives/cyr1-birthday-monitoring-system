@@ -2,10 +2,8 @@ import { supabase } from "../lib/supabase";
 
 /*
   ONE-TIME MIGRATION:
-  - Reads local cached employees
-  - Uploads missing ones to Supabase
+  Upload local cached employees to Supabase
 */
-
 export async function migrateLocalEmployees() {
   const local = localStorage.getItem("cyr1_cache");
   if (!local) return;
@@ -14,13 +12,12 @@ export async function migrateLocalEmployees() {
   if (!Array.isArray(localEmployees) || localEmployees.length === 0)
     return;
 
-  // Fetch existing cloud employees
-  const { data: cloudEmployees } = await supabase
+  const { data: cloud } = await supabase
     .from("employees")
-    .select("id, name, birthday");
+    .select("name, birthday");
 
   const exists = (emp) =>
-    cloudEmployees?.some(
+    cloud?.some(
       c =>
         c.name === emp.name &&
         c.birthday === emp.birthday
@@ -36,11 +33,8 @@ export async function migrateLocalEmployees() {
       image_url: e.image || null
     }));
 
-  if (toInsert.length === 0) return;
-
-  await supabase.from("employees").insert(toInsert);
-
-  console.log(
-    `[MIGRATION] Uploaded ${toInsert.length} employees`
-  );
+  if (toInsert.length > 0) {
+    await supabase.from("employees").insert(toInsert);
+    console.log(`[MIGRATION] ${toInsert.length} records uploaded`);
+  }
 }

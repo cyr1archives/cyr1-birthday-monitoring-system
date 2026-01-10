@@ -1,31 +1,46 @@
+import {
+  startOfMonth,
+  endOfMonth,
+  startOfWeek,
+  endOfWeek,
+  addDays,
+  format,
+  isSameDay,
+  isSameMonth
+} from "date-fns";
+
 export default function MiniCalendar() {
   const today = new Date();
-  const days = Array.from({ length: 31 }, (_, i) => i + 1);
+  const start = startOfWeek(startOfMonth(today));
+  const end = endOfWeek(endOfMonth(today));
+
+  const days = [];
+  let current = start;
+  while (current <= end) {
+    days.push(current);
+    current = addDays(current, 1);
+  }
 
   return (
-    <div className="p-8 rounded-3xl bg-card border border-card glow-card">
-      <h3 className="text-lg font-semibold mb-4 text-white/70">
-        {today.toLocaleString("default", {
-          month: "long",
-          year: "numeric"
-        })}
-      </h3>
+    <div className="rounded-3xl p-5 bg-card border border-card">
+      <h3 className="mb-3">{format(today, "MMMM yyyy")}</h3>
 
-      <div className="grid grid-cols-7 gap-2 text-center">
-        {["S","M","T","W","T","F","S"].map(d => (
-          <div key={d} className="text-xs text-white/40">{d}</div>
+      <div className="grid grid-cols-7 text-xs text-white/50 mb-2">
+        {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map((d,i)=>(
+          <div key={`wd-${i}`} className="text-center">{d}</div>
         ))}
+      </div>
 
-        {days.map(d => (
+      <div className="grid grid-cols-7 gap-1">
+        {days.map((day,i)=>(
           <div
-            key={d}
-            className={`h-10 flex items-center justify-center rounded-lg
-              ${d === today.getDate()
-                ? "bg-[var(--accent)] text-green-400"
-                : "text-white/70"
-              }`}
+            key={`day-${format(day,"yyyy-MM-dd")}-${i}`}
+            className={`h-8 flex items-center justify-center rounded-lg
+              ${!isSameMonth(day,today) ? "text-white/30":""}
+              ${isSameDay(day,today) ? "bg-white/20 font-bold":"hover:bg-white/10"}
+            `}
           >
-            {d}
+            {format(day,"d")}
           </div>
         ))}
       </div>

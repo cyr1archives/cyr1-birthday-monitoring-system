@@ -7,7 +7,6 @@ export function EmployeesProvider({ children }) {
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  /* LOAD FROM CLOUD */
   useEffect(() => {
     loadEmployees();
   }, []);
@@ -20,16 +19,11 @@ export function EmployeesProvider({ children }) {
 
     if (!error && data) {
       setEmployees(data);
-      localStorage.setItem(
-        "cyr1_cache",
-        JSON.stringify(data)
-      );
+      localStorage.setItem("cyr1_cache", JSON.stringify(data));
     } else {
-      // OFFLINE FALLBACK
       const cache = localStorage.getItem("cyr1_cache");
       if (cache) setEmployees(JSON.parse(cache));
     }
-
     setLoading(false);
   }
 
@@ -44,11 +38,7 @@ export function EmployeesProvider({ children }) {
   }
 
   async function updateEmployee(emp) {
-    await supabase
-      .from("employees")
-      .update(emp)
-      .eq("id", emp.id);
-
+    await supabase.from("employees").update(emp).eq("id", emp.id);
     setEmployees(prev =>
       prev.map(e => (e.id === emp.id ? emp : e))
     );
